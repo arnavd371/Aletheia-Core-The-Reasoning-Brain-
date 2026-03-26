@@ -268,13 +268,13 @@ def _infer_action_labels_from_steps(steps: List[str]) -> List[int]:
     during RLVR training without requiring annotated data.
     """
     _KW: List[Tuple[str, str]] = [
-        ("Done", r"x\s*=\s*-?\d+"),          # final numeric answer
-        ("Factor", r"factor"),
-        ("Expand", r"expand"),
-        ("Evaluate", r"=\s*\d+"),             # collapses to a number
-        ("Substitute", r"sub"),
-        ("Transpose", r"transpose|rearrang"),
-        ("Combine", r"combin|collect"),
+        ("Done", r"x\s*=\s*-?\d+"),                    # final numeric answer
+        ("Factor", r"\bfactor\b"),
+        ("Expand", r"\bexpand\b"),
+        ("Evaluate", r"=\s*\d+"),                       # collapses to a number
+        ("Substitute", r"\bsubstitut"),
+        ("Transpose", r"\btranspose\b|\brearrang\b"),
+        ("Combine", r"\bcombine\b|\bcollect\b"),
     ]
     labels = []
     for step in steps:
