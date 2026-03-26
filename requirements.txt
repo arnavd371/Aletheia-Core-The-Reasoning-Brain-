@@ -1,0 +1,21 @@
+# Core deep learning framework
+torch>=2.1.0
+torchvision>=0.16.0
+
+# FlashAttention (optional but recommended for performance on CUDA GPUs)
+# Install separately if CUDA 11.6+ is available:
+#   pip install flash-attn --no-build-isolation
+# flash-attn>=2.3.0
+
+# Symbolic math / algebraic verification
+sympy>=1.12
+
+# Data processing & serialisation
+numpy>=1.24.0
+datasets>=2.14.0
+transformers>=4.35.0
+tokenizers>=0.15.0
+
+# Utilities
+tqdm>=4.66.0
+jsonlines>=3.1.0
