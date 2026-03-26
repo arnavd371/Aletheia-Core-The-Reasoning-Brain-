@@ -43,7 +43,7 @@ Open the printed Vite URL (default `http://localhost:5173`) and ask Aletheia to 
 
 - **Python** ≥ 3.10
 - **Node.js** ≥ 18 and **npm**
-- (Optional) CUDA‑capable GPU for fast inference/training
+- (Optional) CUDA-capable GPU for fast inference/training
 - A trained Aletheia-Core checkpoint (`.pt` or safetensors) for inference
 
 ## Repository Layout
@@ -75,7 +75,7 @@ python server.py --checkpoint /path/to/aletheia_core_v1.pt --port 8000
 
 ```bash
 curl -N -X POST http://localhost:8000/v1/solve \
-  -H "Content-Type": "application/json" \
+  -H "Content-Type: application/json" \
   -d '{"problem": "Solve: 3*x + 7 = 16"}'
 ```
 
@@ -112,11 +112,15 @@ npm run preview   # serve the built assets locally
 ```json
 {
   "problem": "Solve: 3*x + 7 = 16",
-  "max_new_tokens": 512,   // optional, default 512
-  "temperature": 0.8,      // optional, default 0.8
-  "top_k": 50              // optional, default 50 (0 disables top-k)
+  "max_new_tokens": 512,
+  "temperature": 0.8,
+  "top_k": 50
 }
 ```
+
+- `max_new_tokens` (optional) — defaults to `512`
+- `temperature` (optional) — defaults to `0.8`
+- `top_k` (optional) — defaults to `50` (`0` disables top-k)
 
 **SSE events:**
 
