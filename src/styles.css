@@ -91,6 +91,11 @@ body {
   cursor: pointer;
 }
 
+.error-banner button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .input-form {
   border-radius: 16px;
   background: rgba(15, 23, 42, 0.6);

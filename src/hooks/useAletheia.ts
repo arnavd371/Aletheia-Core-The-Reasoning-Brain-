@@ -13,6 +13,7 @@ type StreamState = {
   answer: string
   loading: boolean
   error: string | null
+  lastProblem: string
 }
 
 const INITIAL_STATE: StreamState = {
@@ -20,6 +21,12 @@ const INITIAL_STATE: StreamState = {
   answer: '',
   loading: false,
   error: null,
+  lastProblem: '',
+}
+
+function toSafeNumber(value: unknown, fallback: number): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
 }
 
 function sanitizeLatex(input: string): string {
@@ -32,15 +39,10 @@ function sanitizeLatex(input: string): string {
   return rendered
 }
 
-export function useAletheia(endpoint = 'http://localhost:8000/v1/solve') {
+export function useAletheia(endpoint = import.meta.env.VITE_API_ENDPOINT ?? 'http://localhost:8000/v1/solve') {
   const [state, setState] = useState<StreamState>(INITIAL_STATE)
   const controllerRef = useRef<AbortController | null>(null)
-
-  const reset = useCallback(() => {
-    controllerRef.current?.abort()
-    controllerRef.current = null
-    setState(INITIAL_STATE)
-  }, [])
+  const endpointRef = useRef(endpoint)
 
   const solve = useCallback(async (problem: string) => {
     controllerRef.current?.abort()
@@ -52,10 +54,11 @@ export function useAletheia(endpoint = 'http://localhost:8000/v1/solve') {
       answer: '',
       loading: true,
       error: null,
+      lastProblem: problem,
     })
 
     try {
-      const response = await fetch(endpoint, {
+      const response = await fetch(endpointRef.current, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,10 +105,10 @@ export function useAletheia(endpoint = 'http://localhost:8000/v1/solve') {
                   steps: [
                     ...prev.steps,
                     {
-                      step_number: Number(parsed.step_number ?? prev.steps.length + 1),
+                      step_number: toSafeNumber(parsed.step_number, prev.steps.length + 1),
                       expression: sanitizeLatex(String(parsed.expression ?? '')),
                       action: String(parsed.action ?? 'Reason'),
-                      action_index: Number(parsed.action_index ?? -1),
+                      action_index: toSafeNumber(parsed.action_index, -1),
                     },
                   ],
                 }))
@@ -140,11 +143,10 @@ export function useAletheia(endpoint = 'http://localhost:8000/v1/solve') {
         error: 'Brain is Sleeping: Wake up the GPU',
       }))
     }
-  }, [endpoint])
+  }, [])
 
   return useMemo(() => ({
     ...state,
     solve,
-    reset,
-  }), [reset, solve, state])
+  }), [solve, state])
 }

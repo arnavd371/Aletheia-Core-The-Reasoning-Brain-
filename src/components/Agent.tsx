@@ -21,7 +21,7 @@ function StepCard({ action, expression }: { action: string; expression: string }
 
 export function Agent() {
   const [problem, setProblem] = useState('')
-  const { steps, answer, loading, error, solve } = useAletheia()
+  const { steps, answer, loading, error, lastProblem, solve } = useAletheia()
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -63,7 +63,7 @@ export function Agent() {
         {error ? (
           <div className="error-banner">
             <span>{error}</span>
-            <button type="button" onClick={() => void solve(problem.trim())}>
+            <button type="button" disabled={!lastProblem} onClick={() => void solve(lastProblem)}>
               Reconnect
             </button>
           </div>
