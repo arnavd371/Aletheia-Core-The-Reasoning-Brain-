@@ -3,6 +3,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.egg-info/
+node_modules/
 dist/
 build/
 *.egg
