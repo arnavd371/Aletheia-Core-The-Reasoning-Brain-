@@ -16,6 +16,14 @@ datasets>=2.14.0
 transformers>=4.35.0
 tokenizers>=0.15.0
 
+# Training infrastructure
+accelerate>=0.25.0
+# deepspeed>=0.12.0        # optional: DeepSpeed ZeRO-2 (Linux + CUDA only)
+# bitsandbytes>=0.41.0     # optional: 4-bit / 8-bit QLoRA quantisation
+
+# Experiment tracking (optional)
+# wandb>=0.16.0
+
 # Utilities
 tqdm>=4.66.0
 jsonlines>=3.1.0

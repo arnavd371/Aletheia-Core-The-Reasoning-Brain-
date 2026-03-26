@@ -1,0 +1,155 @@
+# accelerate_config.yaml
+# =============================================================================
+# Aletheia-Core — Accelerate + DeepSpeed ZeRO-2 + QLoRA configuration
+# =============================================================================
+#
+# Usage
+# -----
+#   accelerate launch --config_file accelerate_config.yaml trainer.py \
+#       --data algebra_dataset.jsonl --epochs 3 --wandb
+#
+# Requirements
+# ------------
+#   pip install accelerate deepspeed bitsandbytes wandb
+#
+# Hardware assumptions
+# --------------------
+#   • ≥ 1 CUDA GPU with ≥ 8 GB VRAM (16 GB recommended for full group_size=8)
+#   • 4-bit QLoRA (bitsandbytes) keeps the 152 M-parameter model well under 4 GB
+#   • DeepSpeed ZeRO-2 shards optimiser states + gradients when using ≥ 2 GPUs
+
+# ---------------------------------------------------------------------------
+# Core accelerate settings
+# ---------------------------------------------------------------------------
+compute_environment: LOCAL_MACHINE
+distributed_type: DEEPSPEED          # Switch to NO for single-GPU without DS
+mixed_precision: bf16                 # bfloat16 throughout; change to fp16 if unsupported
+num_processes: 1                      # Set to number of GPUs available
+num_machines: 1
+machine_rank: 0
+main_process_ip: null
+main_process_port: null
+use_cpu: false
+
+# ---------------------------------------------------------------------------
+# DeepSpeed ZeRO-2 configuration
+# ---------------------------------------------------------------------------
+deepspeed_config:
+  # Stage 2 shards gradients + optimiser states across GPUs.
+  # Stage 3 additionally shards model parameters (higher memory savings but
+  # more communication overhead — prefer Stage 2 for ≤ 4 GPUs).
+  zero_stage: 2
+
+  # Overlap communication with computation for gradient reduction
+  overlap_comm: true
+
+  # Reduce scatter gradients and all-gather parameters simultaneously
+  contiguous_gradients: true
+
+  # Offload optimiser states to CPU RAM to further reduce VRAM usage.
+  # Valid values: "cpu" (offload to RAM) | "none" (keep on GPU).
+  # Use "cpu" when training on a single GPU with < 12 GB VRAM.
+  offload_optimizer_device: cpu       # change to "none" to keep optimiser states on GPU
+
+  # Gradient clipping (mirrors TrainingConfig.max_grad_norm)
+  gradient_clipping: 1.0
+
+  # FP16 loss scaling (only relevant when mixed_precision=fp16)
+  fp16:
+    enabled: false
+    loss_scale: 0
+    loss_scale_window: 1000
+    initial_scale_power: 16
+    hysteresis: 2
+    min_loss_scale: 1
+
+  # BF16 configuration
+  bf16:
+    enabled: true
+
+  # Optimiser — DeepSpeed's fused Adam is recommended on CUDA
+  optimizer:
+    type: AdamW
+    params:
+      lr: 1.0e-5
+      betas: [0.9, 0.999]
+      eps: 1.0e-8
+      weight_decay: 0.01
+
+  # Scheduler — mirrors the cosine schedule in trainer.py
+  scheduler:
+    type: WarmupDecayLR
+    params:
+      warmup_min_lr: 0
+      warmup_max_lr: 1.0e-5
+      warmup_num_steps: 100
+      total_num_steps: 10000         # override at runtime with --total_num_steps
+
+  # Activation checkpointing (saves ~40% VRAM at the cost of ~33% speed)
+  activation_checkpointing:
+    partition_activations: true
+    cpu_checkpointing: false
+    contiguous_memory_optimization: false
+    number_checkpoints: null
+
+  # Tensor parallelism / pipeline parallelism — disabled (single node)
+  tensor_parallel:
+    enabled: false
+
+  # ZeRO++ (faster communication for multi-node setups)
+  zero_optimization:
+    stage: 2
+    allgather_partitions: true
+    allgather_bucket_size: 2.0e8
+    reduce_scatter: true
+    reduce_bucket_size: 2.0e8
+    overlap_comm: true
+    contiguous_gradients: true
+
+# ---------------------------------------------------------------------------
+# QLoRA (4-bit quantisation via bitsandbytes)
+# ---------------------------------------------------------------------------
+# These settings are read by trainer.py when --qlora is passed.
+# They configure the bnb.nn.Linear4bit layers that replace the standard
+# Linear layers in the model for memory-efficient fine-tuning.
+#
+# To enable QLoRA, run trainer.py with --qlora flag, which sets
+# TrainingConfig.use_qlora = True.  The model will then use:
+#   • 4-bit NormalFloat (NF4) quantisation for the frozen base weights
+#   • Double quantisation (quantise the quantisation constants) for
+#     additional ~0.37 bits/parameter savings
+#   • BF16 compute dtype for the adapter weights
+
+qlora:
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4            # Normal Float 4 — optimal for normally-distributed weights
+  bnb_4bit_compute_dtype: bfloat16
+  bnb_4bit_use_double_quant: true     # Double quantisation (~0.37 bits extra savings)
+
+# LoRA adapter configuration (applied on top of 4-bit base weights)
+lora:
+  r: 16                               # LoRA rank
+  alpha: 32                           # LoRA scaling factor (alpha/r = 2 is typical)
+  dropout: 0.05
+  # Which linear projections to apply LoRA to
+  target_modules:
+    - qkv_proj
+    - out_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+# ---------------------------------------------------------------------------
+# Weights & Biases (WandB)
+# ---------------------------------------------------------------------------
+# Pass --wandb to trainer.py to activate logging.
+# Set your project/entity here or via WANDB_PROJECT / WANDB_ENTITY env vars.
+
+wandb:
+  project: aletheia-core
+  entity: null                        # Set to your WandB username/org, or leave null
+  tags:
+    - grpo
+    - algebra
+    - reasoning
+  log_model: false                    # Set to true to upload model artefacts to WandB

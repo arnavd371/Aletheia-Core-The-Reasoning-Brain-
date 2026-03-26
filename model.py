@@ -301,7 +301,7 @@ class AletheiaCore(nn.Module):
         self,
         input_ids: torch.Tensor,
         mask: Optional[torch.Tensor] = None,
-    ) -> dict[str, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         """Run a forward pass.
 
         Args:
