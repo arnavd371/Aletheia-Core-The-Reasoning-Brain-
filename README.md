@@ -14,6 +14,7 @@ Streaming algebraic reasoning with a lightweight transformer and a reactive UI. 
 
 - [Quick Start](#quick-start)
 - [Prerequisites](#prerequisites)
+- [Model Specifications](#model-specifications)
 - [Repository Layout](#repository-layout)
 - [Backend (FastAPI SSE server)](#backend-fastapi-sse-server)
 - [Frontend (Vite + React)](#frontend-vite--react)
@@ -45,6 +46,16 @@ Open the printed Vite URL (default `http://localhost:5173`) and ask Aletheia to 
 - **Node.js** ≥ 18 and **npm**
 - (Optional) CUDA-capable GPU for fast inference/training
 - A trained Aletheia-Core checkpoint (`.pt` or safetensors) for inference
+
+## Model Specifications
+
+- **Architecture:** Decoder-only transformer with 12 layers, 12 attention heads, 768 hidden dimensions, SwiGLU feed-forward blocks (4× width), and RMSNorm. Uses RoPE for positional encoding and falls back to PyTorch SDPA when FlashAttention is unavailable.
+- **Context length:** 2048 tokens (configurable via `max_seq_len`).
+- **Action reasoning head:** Predicts one of eight algebraic actions at each position: `Expand`, `Factor`, `Simplify`, `Substitute`, `Transpose`, `Combine`, `Evaluate`, `Done`.
+- **Vocabulary:** Defaults to 50,257 tokens to match the training tokenizer (`SimpleTokenizer`/HF-compatible). Pass a different `vocab_size` when constructing the model if you use another tokenizer.
+- **Checkpoint format:** Standard PyTorch state-dict (`.pt`) or `safetensors`. `export.py` merges optional LoRA adapters, then writes `aletheia_core_v1.safetensors` and a `model_config.json` (includes architecture hyperparams and the reasoning head labels) for serving.
+- **Generation defaults:** `max_new_tokens=512`, `temperature=0.8`, `top_k=50` (all configurable on the API/server).
+- **Hardware:** Runs on CPU or GPU; prefers bfloat16/float16 on CUDA and automatically uses FlashAttention when installed.
 
 ## Repository Layout
 
